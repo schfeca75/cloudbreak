@@ -2,6 +2,7 @@ package com.sequenceiq.cloudbreak.conf;
 
 import static com.sequenceiq.cloudbreak.EnvironmentVariableConfig.CB_MAIL_SMTP_AUTH;
 import static com.sequenceiq.cloudbreak.EnvironmentVariableConfig.CB_MAIL_SMTP_STARTTLS_ENABLE;
+import static com.sequenceiq.cloudbreak.EnvironmentVariableConfig.CB_MAIL_SMTP_TLS_VERIFY;
 import static com.sequenceiq.cloudbreak.EnvironmentVariableConfig.CB_SMTP_SENDER_FROM;
 import static com.sequenceiq.cloudbreak.EnvironmentVariableConfig.CB_SMTP_SENDER_HOST;
 import static com.sequenceiq.cloudbreak.EnvironmentVariableConfig.CB_SMTP_SENDER_PASSWORD;
@@ -10,12 +11,20 @@ import static com.sequenceiq.cloudbreak.EnvironmentVariableConfig.CB_SMTP_SENDER
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 import javax.mail.internet.MimeMessage;
 
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.conn.ssl.TrustStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,8 +63,11 @@ public class MailSenderConfig {
     @Value("${cb.mail.smtp.starttls.enable:" + CB_MAIL_SMTP_STARTTLS_ENABLE + "}")
     private String smtpStarttlsEnable;
 
+    @Value("${cb.mail.smtp.tls.verify:" + CB_MAIL_SMTP_TLS_VERIFY + "}")
+    private Boolean smtpTlsVerify;
+
     @Bean
-    public JavaMailSender mailSender() {
+    public JavaMailSender mailSender() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
         JavaMailSender mailSender = null;
         if (isMailSendingConfigured()) {
             mailSender = new JavaMailSenderImpl();
@@ -98,12 +110,23 @@ public class MailSenderConfig {
         return StringUtils.collectionToDelimitedString(missingVars, ",", "[", "]");
     }
 
-    private Properties getJavaMailProperties() {
+    private Properties getJavaMailProperties() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
         Properties props = new Properties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", smtpAuth);
         props.put("mail.smtp.starttls.enable", smtpStarttlsEnable);
         props.put("mail.debug", true);
+        if (!smtpTlsVerify) {
+            SSLContextBuilder sslContextBuilder = new SSLContextBuilder();
+            sslContextBuilder.loadTrustMaterial(null, new TrustStrategy() {
+                @Override
+                public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+                    return true;
+                }
+            });
+            SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(sslContextBuilder.build());
+            props.put("mail.smtp.socketFactory.class", sslConnectionSocketFactory);
+        }
         return props;
     }
 
