@@ -36,10 +36,14 @@ import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
+import javax.persistence.PostLoad;
+import javax.persistence.PrePersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.sequenceiq.cloudbreak.common.type.CloudPlatform;
 import com.sequenceiq.cloudbreak.common.type.InstanceGroupType;
@@ -620,5 +624,95 @@ public class Stack implements ProvisionEntity {
 
     public void setComponents(Set<Component> components) {
         this.components = components;
+    }
+
+    public String getMostSpecificZone() {
+        if (StringUtils.isNoneEmpty(availabilityZone)) {
+            return availabilityZone;
+        } else {
+            return region;
+        }
+    }
+
+    @PrePersist
+    @PostLoad
+    public void legacyRegionNameConverter() {
+        LegacyCloudRegion cr = LegacyCloudRegion.of(getRegion());
+        if (cr != LegacyCloudRegion.EMPTY) {
+            setRegion(cr.region());
+            if (cr.cloudPlatform != CloudPlatform.AWS) {
+                setAvailabilityZone(cr.zone());
+            }
+        }
+    }
+
+    private enum LegacyCloudRegion {
+
+        EAST_ASIA("East Asia", null, CloudPlatform.AZURE),
+        NORTH_EUROPE("North Europe", null, CloudPlatform.AZURE),
+        WEST_EUROPE("West Europe", null, CloudPlatform.AZURE),
+        EAST_US("East US", null, CloudPlatform.AZURE),
+        CENTRAL_US("Central US", null, CloudPlatform.AZURE),
+        SOUTH_CENTRAL_US("South Central US", null, CloudPlatform.AZURE),
+        NORTH_CENTRAL_US("North Central US", null, CloudPlatform.AZURE),
+        EAST_US_2("East US 2", null, CloudPlatform.AZURE),
+        WEST_US("West US", null, CloudPlatform.AZURE),
+        JAPAN_EAST("Japan East", null, CloudPlatform.AZURE),
+        JAPAN_WEST("Japan West", null, CloudPlatform.AZURE),
+        SOUTHEAST_ASIA("Southeast Asia", null, CloudPlatform.AZURE),
+        BRAZIL_SOUTH("Brazil South", null, CloudPlatform.AZURE),
+
+        US_CENTRAL1_A("us-central1", "us-central1-a", CloudPlatform.GCP),
+        US_CENTRAL1_B("us-central1", "us-central1-b", CloudPlatform.GCP),
+        US_CENTRAL1_F("us-central1", "us-central1-f", CloudPlatform.GCP),
+        US_CENTRAL1_C("us-central1", "us-central1-c", CloudPlatform.GCP),
+        EUROPE_WEST1_B("europe-west1", "europe-west1-b", CloudPlatform.GCP),
+        EUROPE_WEST1_C("europe-west1", "europe-west1-c", CloudPlatform.GCP),
+        EUROPE_WEST1_D("europe-west1", "europe-west1-d", CloudPlatform.GCP),
+        ASIA_EAST1_A("asia-east1", "asia-east1-a", CloudPlatform.GCP),
+        ASIA_EAST1_B("asia-east1", "asia-east1-b", CloudPlatform.GCP),
+        ASIA_EAST1_C("asia-east1", "asia-east1-c", CloudPlatform.GCP),
+
+        GovCloud("us-gov-west-1", null, CloudPlatform.AWS),
+        US_EAST_1("us-east-1", null, CloudPlatform.AWS),
+        US_WEST_1("us-west-1", null, CloudPlatform.AWS),
+        US_WEST_2("us-west-2", null, CloudPlatform.AWS),
+        EU_WEST_1("eu-west-1", null, CloudPlatform.AWS),
+        EU_CENTRAL_1("eu-central-1", null, CloudPlatform.AWS),
+        AP_SOUTHEAST_1("ap-southeast-1", null, CloudPlatform.AWS),
+        AP_SOUTHEAST_2("ap-southeast-2", null, CloudPlatform.AWS),
+        AP_NORTHEAST_1("ap-northeast-1", null, CloudPlatform.AWS),
+        SA_EAST_1("sa-east-1", null, CloudPlatform.AWS),
+        CN_NORTH_1("cn-north-1", null, CloudPlatform.AWS),
+
+        LOCAL("local", "local", CloudPlatform.OPENSTACK),
+
+        EMPTY(null, null, null);
+
+        private final String region;
+        private final String zone;
+        private final CloudPlatform cloudPlatform;
+
+        private LegacyCloudRegion(String region, String zone, CloudPlatform cloudPlatform) {
+            this.region = region;
+            this.zone = zone;
+            this.cloudPlatform = cloudPlatform;
+        }
+
+        public String region() {
+            return this.region;
+        }
+
+        public String zone() {
+            return this.zone;
+        }
+
+        public static LegacyCloudRegion of(String enumName) {
+            try {
+                return valueOf(enumName);
+            } catch (RuntimeException e) {
+                return EMPTY;
+            }
+        }
     }
 }

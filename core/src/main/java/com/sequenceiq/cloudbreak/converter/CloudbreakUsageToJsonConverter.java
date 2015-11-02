@@ -8,8 +8,6 @@ import org.springframework.stereotype.Component;
 
 import com.sequenceiq.cloudbreak.controller.json.CloudbreakUsageJson;
 import com.sequenceiq.cloudbreak.domain.CbUser;
-import com.sequenceiq.cloudbreak.common.type.CloudPlatform;
-import com.sequenceiq.cloudbreak.common.type.CloudRegion;
 import com.sequenceiq.cloudbreak.domain.CloudbreakUsage;
 import com.sequenceiq.cloudbreak.service.user.UserDetailsService;
 import com.sequenceiq.cloudbreak.service.user.UserFilterField;
@@ -44,7 +42,7 @@ public class CloudbreakUsageToJsonConverter extends AbstractConversionServiceAwa
     }
 
     private String getZoneNameByProvider(String cloud, String zoneFromUsage) {
-        String zone = "";
+/*        String zone = "";
         if (zoneFromUsage != null && CloudPlatform.AWS.name().equals(cloud)) {
             CloudRegion transformedZone = CloudRegion.valueOf(zoneFromUsage);
             zone = transformedZone.name();
@@ -55,6 +53,7 @@ public class CloudbreakUsageToJsonConverter extends AbstractConversionServiceAwa
             CloudRegion transformedZone = CloudRegion.valueOf(zoneFromUsage);
             zone = transformedZone.name();
         }
-        return zone;
+        return zone;*/
+        return zoneFromUsage;
     }
 }

@@ -24,6 +24,8 @@ public class CloudbreakUsage implements ProvisionEntity {
 
     private String region;
 
+    private String availabilityZone;
+
     private Date day;
 
     private Long instanceHours;
@@ -120,6 +122,14 @@ public class CloudbreakUsage implements ProvisionEntity {
 
     public void setInstanceGroup(String instanceGroup) {
         this.instanceGroup = instanceGroup;
+    }
+
+    public String getAvailabilityZone() {
+        return availabilityZone;
+    }
+
+    public void setAvailabilityZone(String availabilityZone) {
+        this.availabilityZone = availabilityZone;
     }
 
     @Override
